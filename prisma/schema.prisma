@@ -1,0 +1,249 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  name      String?
+  clerkId   String?  @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  workspaces WorkspaceMember[]
+}
+
+model Workspace {
+  id        String   @id @default(cuid())
+  name      String
+  slug      String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  members        WorkspaceMember[]
+  contacts       Contact[]
+  lists          List[]
+  tags           Tag[]
+  messages       Message[]
+  keywords       Keyword[]
+  inboxMessages  InboxMessage[]
+  optOuts        OptOut[]
+  billingAccount BillingAccount?
+}
+
+model WorkspaceMember {
+  id          String   @id @default(cuid())
+  role        String   @default("owner")
+  userId      String
+  workspaceId String
+  createdAt   DateTime @default(now())
+
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, workspaceId])
+}
+
+model Contact {
+  id          String   @id @default(cuid())
+  workspaceId String
+  phone       String
+  firstName   String?
+  lastName    String?
+  email       String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  workspace         Workspace          @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  listContacts      ListContact[]
+  contactTags       ContactTag[]
+  messageRecipients MessageRecipient[]
+  inboxMessages     InboxMessage[]
+  optOuts           OptOut[]
+  linkClicks        LinkClick[]
+
+  @@unique([workspaceId, phone])
+}
+
+model List {
+  id          String   @id @default(cuid())
+  workspaceId String
+  name        String
+  description String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  workspace    Workspace     @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  listContacts ListContact[]
+  messages     Message[]
+}
+
+model ListContact {
+  id        String   @id @default(cuid())
+  listId    String
+  contactId String
+  addedAt   DateTime @default(now())
+
+  list    List    @relation(fields: [listId], references: [id], onDelete: Cascade)
+  contact Contact @relation(fields: [contactId], references: [id], onDelete: Cascade)
+
+  @@unique([listId, contactId])
+}
+
+model Tag {
+  id          String   @id @default(cuid())
+  workspaceId String
+  name        String
+  color       String   @default("#6366f1")
+  createdAt   DateTime @default(now())
+
+  workspace   Workspace    @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  contactTags ContactTag[]
+
+  @@unique([workspaceId, name])
+}
+
+model ContactTag {
+  id        String @id @default(cuid())
+  contactId String
+  tagId     String
+
+  contact Contact @relation(fields: [contactId], references: [id], onDelete: Cascade)
+  tag     Tag     @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@unique([contactId, tagId])
+}
+
+enum MessageStatus {
+  DRAFT
+  SCHEDULED
+  SENDING
+  SENT
+  FAILED
+}
+
+model Message {
+  id          String        @id @default(cuid())
+  workspaceId String
+  listId      String?
+  name        String
+  body        String
+  status      MessageStatus @default(DRAFT)
+  scheduledAt DateTime?
+  sentAt      DateTime?
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  workspace  Workspace          @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  list       List?              @relation(fields: [listId], references: [id], onDelete: SetNull)
+  recipients MessageRecipient[]
+  linkClicks LinkClick[]
+}
+
+enum RecipientStatus {
+  PENDING
+  SENT
+  DELIVERED
+  FAILED
+  REPLIED
+}
+
+model MessageRecipient {
+  id        String          @id @default(cuid())
+  messageId String
+  contactId String
+  status    RecipientStatus @default(PENDING)
+  sentAt    DateTime?
+  createdAt DateTime        @default(now())
+
+  message Message @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  contact Contact @relation(fields: [contactId], references: [id], onDelete: Cascade)
+
+  @@unique([messageId, contactId])
+}
+
+model Keyword {
+  id          String   @id @default(cuid())
+  workspaceId String
+  keyword     String
+  autoReply   String?
+  listId      String?
+  active      Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@unique([workspaceId, keyword])
+}
+
+model InboxMessage {
+  id          String   @id @default(cuid())
+  workspaceId String
+  contactId   String
+  body        String
+  direction   String   @default("inbound")
+  read        Boolean  @default(false)
+  createdAt   DateTime @default(now())
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  contact   Contact   @relation(fields: [contactId], references: [id], onDelete: Cascade)
+}
+
+model OptOut {
+  id          String   @id @default(cuid())
+  workspaceId String
+  contactId   String
+  reason      String?
+  createdAt   DateTime @default(now())
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  contact   Contact   @relation(fields: [contactId], references: [id], onDelete: Cascade)
+
+  @@unique([workspaceId, contactId])
+}
+
+model LinkClick {
+  id        String   @id @default(cuid())
+  messageId String
+  contactId String
+  url       String
+  clickedAt DateTime @default(now())
+
+  message Message @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  contact Contact @relation(fields: [contactId], references: [id], onDelete: Cascade)
+}
+
+enum BillingPlan {
+  FREE
+  STARTER
+  PRO
+  BUSINESS
+}
+
+enum BillingStatus {
+  ACTIVE
+  PAST_DUE
+  CANCELED
+  TRIALING
+}
+
+model BillingAccount {
+  id               String        @id @default(cuid())
+  workspaceId      String        @unique
+  plan             BillingPlan   @default(FREE)
+  status           BillingStatus @default(TRIALING)
+  stripeCustomerId String?
+  stripeSubId      String?
+  messagesLimit    Int           @default(100)
+  messagesUsed     Int           @default(0)
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+}
