@@ -1,10 +1,22 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { isDatabaseConfigured } from "@/lib/db/database-url";
 import { isProduction } from "@/lib/production-guards";
 
 export const dynamic = "force-dynamic";
 
 export async function GET() {
+  if (!isDatabaseConfigured()) {
+    return NextResponse.json(
+      {
+        ok: false,
+        error: "database_not_configured",
+        timestamp: new Date().toISOString(),
+      },
+      { status: 503 }
+    );
+  }
+
   let databaseOk = false;
 
   try {

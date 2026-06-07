@@ -1,8 +1,11 @@
 import { AppLayout } from "@/components/layout/app-layout";
 import { AppWorkspaceBar } from "@/components/layout/app-workspace-bar";
+import { DatabaseUnavailable } from "@/components/layout/database-unavailable";
 import { getAuthContext } from "@/lib/auth/authorization";
 import { isClerkConfigured } from "@/lib/auth/clerk-config";
 import { listActiveWorkspacesForUser } from "@/lib/auth/active-workspace";
+import { isDatabaseConfigured } from "@/lib/db/database-url";
+import { isDatabaseReachable } from "@/lib/db/check-connection";
 
 export const dynamic = "force-dynamic";
 
@@ -11,6 +14,14 @@ export default async function DashboardLayout({
 }: {
   children: React.ReactNode;
 }) {
+  if (!isDatabaseConfigured() || !(await isDatabaseReachable())) {
+    return (
+      <AppLayout role={null}>
+        <DatabaseUnavailable />
+      </AppLayout>
+    );
+  }
+
   const ctx = await getAuthContext();
   const workspaces = ctx
     ? (await listActiveWorkspacesForUser(ctx.userId)).map((membership) => ({
