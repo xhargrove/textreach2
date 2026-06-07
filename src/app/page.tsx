@@ -2,6 +2,7 @@ import { PublicHeader } from "@/components/layout/public-header";
 import { PublicFooter } from "@/components/layout/public-footer";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { isDemoAuthAllowed } from "@/lib/production-guards";
 
 const features = [
   {
@@ -59,6 +60,8 @@ const useCases = [
 ];
 
 export default function LandingPage() {
+  const showDemo = isDemoAuthAllowed();
+
   return (
     <div className="flex min-h-screen flex-col">
       <PublicHeader />
@@ -79,9 +82,11 @@ export default function LandingPage() {
               <Button href="/sign-up" size="lg">
                 Start Free
               </Button>
-              <Button href="/api/auth/demo" variant="secondary" size="lg">
-                View Demo
-              </Button>
+              {showDemo && (
+                <Button href="/api/auth/demo" variant="secondary" size="lg">
+                  View Demo
+                </Button>
+              )}
             </div>
           </div>
         </section>

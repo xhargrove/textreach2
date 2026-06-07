@@ -3,29 +3,21 @@ set -euo pipefail
 
 cd "$(dirname "$0")/.."
 
-echo "Pulling production env from Vercel..."
-npx vercel env pull .env.production.local --environment=production --yes
-
-# shellcheck disable=SC1091
-set -a
-source .env.production.local
-set +a
-
-if [ -z "${DATABASE_URL:-}" ] && [ -n "${POSTGRES_URL:-}" ]; then
-  export DATABASE_URL="$POSTGRES_URL"
+echo "Running migrations against Vercel production env..."
+if [ -f .env ]; then
+  mv .env .env.local.bak.$$
 fi
 
-if [ -z "${DIRECT_URL:-}" ] && [ -n "${POSTGRES_URL_NON_POOLING:-}" ]; then
-  export DIRECT_URL="$POSTGRES_URL_NON_POOLING"
+npx vercel env run --environment=production -- npx prisma migrate deploy
+status=$?
+
+if [ -f .env.local.bak.$$ ]; then
+  mv .env.local.bak.$$ .env
 fi
 
-if [ -z "${DATABASE_URL:-}" ]; then
-  echo "ERROR: DATABASE_URL (or POSTGRES_URL) is not set on Vercel production."
-  echo "Create Neon Postgres: Vercel → textreach2 → Storage → Create Database"
-  exit 1
+if [ "$status" -ne 0 ]; then
+  echo "ERROR: migrate deploy failed. Ensure Neon is linked on Vercel production."
+  exit "$status"
 fi
-
-echo "Running migrations..."
-npx prisma migrate deploy
 
 echo "Done. Redeploy: npx vercel deploy --prod --yes"
