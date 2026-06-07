@@ -50,6 +50,7 @@ export function CreateMessageWizard({
   );
   const [loadingStats, setLoadingStats] = useState(false);
   const [twilioConfigured, setTwilioConfigured] = useState(true);
+  const [platformTwilioConfigured, setPlatformTwilioConfigured] = useState(true);
   const [showSendConfirm, setShowSendConfirm] = useState(false);
   const [isPending, startTransition] = useTransition();
 
@@ -67,6 +68,7 @@ export function CreateMessageWizard({
     getTwilioConfigAction().then((result) => {
       if (result.ok) {
         setTwilioConfigured(result.configured);
+        setPlatformTwilioConfigured(result.platformConfigured);
       }
     });
   }, []);
@@ -149,7 +151,10 @@ export function CreateMessageWizard({
         listId,
         body,
         action,
-        scheduledAt: action === "schedule" ? scheduledAt : undefined,
+        scheduledAt:
+          action === "schedule" && scheduledAt
+            ? new Date(scheduledAt).toISOString()
+            : undefined,
       });
       const message = getActionError(result);
       if (message) {
@@ -166,7 +171,9 @@ export function CreateMessageWizard({
     }
     if (!twilioConfigured) {
       setError(
-        "Twilio is not configured. Add TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, and a sender to your .env file."
+        !platformTwilioConfigured
+          ? "Twilio is not configured for this app."
+          : "Add your Twilio phone number in Settings → Phone Number before sending or scheduling."
       );
       return;
     }
@@ -183,7 +190,9 @@ export function CreateMessageWizard({
     setError(null);
     if (!twilioConfigured) {
       setError(
-        "Twilio is not configured. Add TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, and a sender to your .env file."
+        !platformTwilioConfigured
+          ? "Twilio is not configured for this app."
+          : "Add your Twilio phone number in Settings → Phone Number before sending or scheduling."
       );
       return;
     }
@@ -230,11 +239,22 @@ export function CreateMessageWizard({
 
       {!twilioConfigured && (step === "review" || step === "send") && (
         <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
-          Twilio is not configured. You can save drafts, but sending and
-          scheduling require{" "}
-          <code className="text-xs">TWILIO_ACCOUNT_SID</code>,{" "}
-          <code className="text-xs">TWILIO_AUTH_TOKEN</code>, and a sender in
-          your <code className="text-xs">.env</code> file.
+          {!platformTwilioConfigured ? (
+            <>
+              Twilio platform credentials are missing. Contact your workspace
+              admin — sending and scheduling are unavailable until Twilio is
+              configured on the server.
+            </>
+          ) : (
+            <>
+              This workspace needs a sending number before you can schedule or
+              send. Add your Twilio phone number in{" "}
+              <Link href="/settings" className="font-medium underline">
+                Settings → Phone Number
+              </Link>
+              .
+            </>
+          )}
         </div>
       )}
 

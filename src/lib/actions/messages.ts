@@ -20,7 +20,8 @@ import {
   processScheduledMessage,
   refreshMessageRecipientsBeforeSend,
 } from "@/lib/messages/process-scheduled";
-import { isTwilioConfigured, isWorkspaceTwilioReady } from "@/lib/twilio/service";
+import { isTwilioConfigured, isWorkspaceTwilioReady, getWorkspaceTwilioSender } from "@/lib/twilio/service";
+import { isWorkspaceTwilioSenderConfigured } from "@/lib/twilio/workspace-sender";
 import { checkMessageLimit } from "@/lib/billing/limits";
 import { checkBillingAllowsSend } from "@/lib/billing/subscription";
 import { getComplianceSettings } from "@/lib/queries/compliance-settings";
@@ -61,9 +62,12 @@ export async function getAudienceStatsAction(listId: string) {
 export async function getTwilioConfigAction() {
   return runAction(async () => {
     const ctx = await requireCanCreateMessages();
+    const sender = await getWorkspaceTwilioSender(ctx.workspaceId);
     return {
       ok: true as const,
       configured: await isWorkspaceTwilioReady(ctx.workspaceId),
+      platformConfigured: isTwilioConfigured(),
+      workspaceSenderConfigured: isWorkspaceTwilioSenderConfigured(sender),
     };
   });
 }
