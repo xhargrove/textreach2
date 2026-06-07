@@ -24,7 +24,7 @@ export function PublicFooter() {
               </li>
               <li>
                 <Link
-                  href="/signup"
+                  href="/sign-up"
                   className="text-sm text-gray-500 hover:text-gray-900"
                 >
                   Sign up

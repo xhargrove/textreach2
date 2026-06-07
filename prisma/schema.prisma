@@ -7,57 +7,164 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+enum WorkspaceRole {
+  owner
+  admin
+  member
+}
+
+enum WorkspacePlan {
+  starter
+  growth
+  pro
+}
+
+enum ContactStatus {
+  active
+  opted_out
+  invalid
+}
+
+enum ContactSource {
+  manual
+  csv
+  keyword
+  inbound
+}
+
+enum ConsentStatus {
+  unknown
+  subscribed
+  unsubscribed
+}
+
+enum MessageStatus {
+  draft
+  scheduled
+  sending
+  sent
+  failed
+}
+
+enum RecipientStatus {
+  queued
+  sent
+  delivered
+  failed
+  undelivered
+  skipped
+  opted_out
+}
+
+enum KeywordStatus {
+  active
+  inactive
+}
+
+enum InboxDirection {
+  inbound
+  outbound
+}
+
+enum BillingStatus {
+  active
+  past_due
+  canceled
+  trialing
+  comped
+  inactive
+}
+
+enum WorkspaceMemberStatus {
+  pending
+  active
+}
+
 model User {
   id        String   @id @default(cuid())
+  clerkId   String?  @unique
   email     String   @unique
   name      String?
-  clerkId   String?  @unique
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  workspaces WorkspaceMember[]
+  ownedWorkspaces Workspace[]       @relation("WorkspaceOwner")
+  memberships     WorkspaceMember[]
 }
 
 model Workspace {
-  id        String   @id @default(cuid())
+  id        String        @id @default(cuid())
   name      String
-  slug      String   @unique
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  ownerId   String
+  plan      WorkspacePlan @default(starter)
+  businessName                String?
+  supportEmail                String?
+  supportPhone                String?
+  privacyPolicyUrl            String?
+  termsUrl                    String?
+  messageFrequencyDescription String?
+  defaultComplianceFooter     String?
+  defaultHelpResponse         String?
+  physicalAddress             String?
+  marketingSmsEnabled         Boolean  @default(true)
+  quietHoursEnabled           Boolean  @default(false)
+  quietHoursTimezone          String?
+  twilioPhoneNumber           String?  @unique
+  twilioMessagingSid          String?
+  twilioAccountSid            String?
+  twilioStatus                String?  @default("not_configured")
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
 
-  members        WorkspaceMember[]
-  contacts       Contact[]
-  lists          List[]
-  tags           Tag[]
-  messages       Message[]
-  keywords       Keyword[]
-  inboxMessages  InboxMessage[]
-  optOuts        OptOut[]
-  billingAccount BillingAccount?
+  owner              User              @relation("WorkspaceOwner", fields: [ownerId], references: [id], onDelete: Cascade)
+  members            WorkspaceMember[]
+  contacts           Contact[]
+  lists              List[]
+  tags               Tag[]
+  messages           Message[]
+  keywords           Keyword[]
+  keywordOptIns      KeywordOptIn[]
+  inboxMessages      InboxMessage[]
+  optOuts            OptOut[]
+  linkClicks         LinkClick[]
+  trackedLinks       TrackedLink[]
+  billingAccount     BillingAccount?
+  complianceArchives ComplianceArchive[]
+  consentEvents      ConsentEvent[]
 }
 
 model WorkspaceMember {
-  id          String   @id @default(cuid())
-  role        String   @default("owner")
-  userId      String
-  workspaceId String
-  createdAt   DateTime @default(now())
+  id                String                 @id @default(cuid())
+  workspaceId       String
+  userId            String
+  role              WorkspaceRole          @default(member)
+  status            WorkspaceMemberStatus  @default(active)
+  clerkInvitationId String?
+  canCreateMessages Boolean                @default(false)
+  createdAt         DateTime               @default(now())
 
-  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([userId, workspaceId])
 }
 
 model Contact {
-  id          String   @id @default(cuid())
-  workspaceId String
-  phone       String
-  firstName   String?
-  lastName    String?
-  email       String?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id                String        @id @default(cuid())
+  workspaceId       String
+  phone             String
+  firstName         String?
+  lastName          String?
+  email             String?
+  status            ContactStatus @default(active)
+  source            ContactSource @default(manual)
+  consentStatus     ConsentStatus @default(unknown)
+  consentTimestamp  DateTime?
+  consentSource     String?
+  consentPhoneNumber String?
+  optedOutAt        DateTime?
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
 
   workspace         Workspace          @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
   listContacts      ListContact[]
@@ -65,7 +172,10 @@ model Contact {
   messageRecipients MessageRecipient[]
   inboxMessages     InboxMessage[]
   optOuts           OptOut[]
+  keywordOptIns     KeywordOptIn[]
   linkClicks        LinkClick[]
+  trackedLinks      TrackedLink[]
+  consentEvents     ConsentEvent[]
 
   @@unique([workspaceId, phone])
 }
@@ -81,13 +191,14 @@ model List {
   workspace    Workspace     @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
   listContacts ListContact[]
   messages     Message[]
+  keywords     Keyword[]
 }
 
 model ListContact {
   id        String   @id @default(cuid())
   listId    String
   contactId String
-  addedAt   DateTime @default(now())
+  createdAt DateTime @default(now())
 
   list    List    @relation(fields: [listId], references: [id], onDelete: Cascade)
   contact Contact @relation(fields: [contactId], references: [id], onDelete: Cascade)
@@ -109,22 +220,15 @@ model Tag {
 }
 
 model ContactTag {
-  id        String @id @default(cuid())
+  id        String   @id @default(cuid())
   contactId String
   tagId     String
+  createdAt DateTime @default(now())
 
   contact Contact @relation(fields: [contactId], references: [id], onDelete: Cascade)
   tag     Tag     @relation(fields: [tagId], references: [id], onDelete: Cascade)
 
   @@unique([contactId, tagId])
-}
-
-enum MessageStatus {
-  DRAFT
-  SCHEDULED
-  SENDING
-  SENT
-  FAILED
 }
 
 model Message {
@@ -133,33 +237,35 @@ model Message {
   listId      String?
   name        String
   body        String
-  status      MessageStatus @default(DRAFT)
+  sentBody    String?
+  status      MessageStatus @default(draft)
   scheduledAt DateTime?
   sentAt      DateTime?
   createdAt   DateTime      @default(now())
   updatedAt   DateTime      @updatedAt
 
-  workspace  Workspace          @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
-  list       List?              @relation(fields: [listId], references: [id], onDelete: SetNull)
-  recipients MessageRecipient[]
-  linkClicks LinkClick[]
-}
+  @@index([status, scheduledAt])
 
-enum RecipientStatus {
-  PENDING
-  SENT
-  DELIVERED
-  FAILED
-  REPLIED
+  workspace         Workspace          @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  list              List?              @relation(fields: [listId], references: [id], onDelete: SetNull)
+  recipients        MessageRecipient[]
+  linkClicks        LinkClick[]
+  trackedLinks      TrackedLink[]
+  complianceArchive ComplianceArchive?
+  replyMessages     InboxMessage[]
 }
 
 model MessageRecipient {
-  id        String          @id @default(cuid())
-  messageId String
-  contactId String
-  status    RecipientStatus @default(PENDING)
-  sentAt    DateTime?
-  createdAt DateTime        @default(now())
+  id           String          @id @default(cuid())
+  messageId    String
+  contactId    String
+  phone        String
+  status       RecipientStatus @default(queued)
+  sentBody     String?
+  twilioSid    String?
+  errorMessage String?
+  createdAt    DateTime        @default(now())
+  updatedAt    DateTime        @updatedAt
 
   message Message @relation(fields: [messageId], references: [id], onDelete: Cascade)
   contact Contact @relation(fields: [contactId], references: [id], onDelete: Cascade)
@@ -167,38 +273,84 @@ model MessageRecipient {
   @@unique([messageId, contactId])
 }
 
-model Keyword {
-  id          String   @id @default(cuid())
-  workspaceId String
-  keyword     String
-  autoReply   String?
-  listId      String?
-  active      Boolean  @default(true)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+model ComplianceArchive {
+  id              String   @id @default(cuid())
+  workspaceId     String
+  messageId       String   @unique
+  messageBody     String
+  listId          String?
+  listName        String?
+  senderNumber    String?
+  totalRecipients Int
+  sentCount       Int
+  failedCount     Int
+  skippedOptOuts  Int
+  skippedInvalid  Int
+  sentAt          DateTime
 
   workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  message   Message   @relation(fields: [messageId], references: [id], onDelete: Cascade)
+
+  @@index([workspaceId])
+}
+
+model Keyword {
+  id          String        @id @default(cuid())
+  workspaceId String
+  keyword     String
+  listId      String?
+  autoReply   String?
+  status      KeywordStatus @default(active)
+  optInCount  Int           @default(0)
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  list      List?     @relation(fields: [listId], references: [id], onDelete: SetNull)
+  optIns    KeywordOptIn[]
 
   @@unique([workspaceId, keyword])
 }
 
-model InboxMessage {
+model KeywordOptIn {
   id          String   @id @default(cuid())
   workspaceId String
+  keywordId   String
   contactId   String
-  body        String
-  direction   String   @default("inbound")
-  read        Boolean  @default(false)
   createdAt   DateTime @default(now())
 
   workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  keyword   Keyword   @relation(fields: [keywordId], references: [id], onDelete: Cascade)
   contact   Contact   @relation(fields: [contactId], references: [id], onDelete: Cascade)
+
+  @@unique([keywordId, contactId])
+}
+
+model InboxMessage {
+  id               String         @id @default(cuid())
+  workspaceId      String
+  contactId        String
+  phone            String
+  body             String
+  direction        InboxDirection @default(inbound)
+  read             Boolean        @default(false)
+  twilioSid        String?
+  relatedMessageId String?
+  createdAt        DateTime       @default(now())
+
+  workspace      Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  contact        Contact   @relation(fields: [contactId], references: [id], onDelete: Cascade)
+  relatedMessage Message?  @relation(fields: [relatedMessageId], references: [id], onDelete: SetNull)
+
+  @@index([relatedMessageId])
+  @@index([workspaceId, contactId, createdAt])
 }
 
 model OptOut {
   id          String   @id @default(cuid())
   workspaceId String
   contactId   String
+  phone       String
   reason      String?
   createdAt   DateTime @default(now())
 
@@ -208,42 +360,73 @@ model OptOut {
   @@unique([workspaceId, contactId])
 }
 
+model ConsentEvent {
+  id          String   @id @default(cuid())
+  workspaceId String
+  contactId   String?
+  phone       String
+  eventType   String
+  source      String?
+  toNumber    String?
+  body        String?
+  createdAt   DateTime @default(now())
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  contact   Contact?  @relation(fields: [contactId], references: [id], onDelete: SetNull)
+
+  @@index([workspaceId, phone])
+  @@index([contactId])
+}
+
+model TrackedLink {
+  id           String   @id @default(cuid())
+  workspaceId  String
+  messageId    String
+  contactId    String?
+  originalUrl  String
+  trackingUrl  String
+  createdAt    DateTime @default(now())
+
+  workspace Workspace  @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  message   Message    @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  contact   Contact?   @relation(fields: [contactId], references: [id], onDelete: SetNull)
+  clicks    LinkClick[]
+
+  @@index([messageId])
+}
+
 model LinkClick {
-  id        String   @id @default(cuid())
-  messageId String
-  contactId String
-  url       String
-  clickedAt DateTime @default(now())
+  id            String   @id @default(cuid())
+  trackedLinkId String
+  workspaceId   String
+  messageId     String
+  contactId     String?
+  originalUrl   String
+  trackingUrl   String
+  clickedAt     DateTime @default(now())
+  userAgent     String?
+  ipHash        String?
 
-  message Message @relation(fields: [messageId], references: [id], onDelete: Cascade)
-  contact Contact @relation(fields: [contactId], references: [id], onDelete: Cascade)
-}
+  trackedLink TrackedLink @relation(fields: [trackedLinkId], references: [id], onDelete: Cascade)
+  workspace   Workspace   @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  message     Message     @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  contact     Contact?    @relation(fields: [contactId], references: [id], onDelete: SetNull)
 
-enum BillingPlan {
-  FREE
-  STARTER
-  PRO
-  BUSINESS
-}
-
-enum BillingStatus {
-  ACTIVE
-  PAST_DUE
-  CANCELED
-  TRIALING
+  @@index([messageId])
+  @@index([trackedLinkId])
 }
 
 model BillingAccount {
-  id               String        @id @default(cuid())
-  workspaceId      String        @unique
-  plan             BillingPlan   @default(FREE)
-  status           BillingStatus @default(TRIALING)
-  stripeCustomerId String?
-  stripeSubId      String?
-  messagesLimit    Int           @default(100)
-  messagesUsed     Int           @default(0)
-  createdAt        DateTime      @default(now())
-  updatedAt        DateTime      @updatedAt
+  id                   String        @id @default(cuid())
+  workspaceId          String        @unique
+  stripeCustomerId     String?
+  stripeSubscriptionId String?
+  plan                 WorkspacePlan @default(starter)
+  status               BillingStatus @default(trialing)
+  currentPeriodStart   DateTime?
+  currentPeriodEnd     DateTime?
+  createdAt            DateTime      @default(now())
+  updatedAt            DateTime      @updatedAt
 
   workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
 }

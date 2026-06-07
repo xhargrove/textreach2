@@ -7,7 +7,7 @@ interface TableProps {
 
 export function Table({ children, className }: TableProps) {
   return (
-    <div className="overflow-x-auto rounded-xl border border-gray-200">
+    <div className="hidden overflow-x-auto rounded-xl border border-gray-200 md:block">
       <table className={cn("min-w-full divide-y divide-gray-200", className)}>
         {children}
       </table>

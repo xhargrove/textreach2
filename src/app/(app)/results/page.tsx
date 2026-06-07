@@ -1,98 +1,105 @@
 import { PageHeader } from "@/components/ui/page-header";
 import { StatCard } from "@/components/ui/card";
-import { Card } from "@/components/ui/card";
-import { messageStatusBadge } from "@/components/ui/badge";
+import { EmptyState } from "@/components/ui/empty-state";
+import { SimpleBarChart } from "@/components/results/simple-bar-chart";
+import { MessageResultsTable } from "@/components/results/message-results-table";
+import { TopListsCard, TopKeywordsCard } from "@/components/results/top-cards";
+import { requirePagePermission } from "@/lib/auth/authorization";
 import {
-  Table,
-  TableHead,
-  TableHeaderCell,
-  TableBody,
-  TableRow,
-  TableCell,
-} from "@/components/ui/table";
-import { messages, dashboardStats } from "@/lib/mock-data";
-import { formatNumber, formatDateTime } from "@/lib/utils";
+  getResultsOverview,
+  getAllMessageResults,
+} from "@/lib/queries/results";
+import { formatNumber } from "@/lib/utils";
 
 export const metadata = {
   title: "Results",
 };
 
-export default function ResultsPage() {
-  const sentMessages = messages.filter((m) => m.status === "sent");
-  const totalDelivered = sentMessages.reduce((sum, m) => sum + m.delivered, 0);
-  const totalReplies = sentMessages.reduce((sum, m) => sum + m.replies, 0);
-  const deliveryRate =
-    totalDelivered > 0
-      ? Math.round((totalDelivered / sentMessages.reduce((s, m) => s + m.recipients, 0)) * 100)
-      : 0;
-  const replyRate =
-    totalDelivered > 0
-      ? Math.round((totalReplies / totalDelivered) * 100)
-      : 0;
+export default async function ResultsPage() {
+  const ctx = await requirePagePermission("view_results");
+  const [overview, messageResults] = await Promise.all([
+    getResultsOverview(ctx.workspaceId),
+    getAllMessageResults(ctx.workspaceId),
+  ]);
+
+  const hasResults = overview.messagesSent > 0;
 
   return (
     <>
       <PageHeader
         title="Results"
-        description="Track delivery, replies, and engagement"
+        description="See how your messages performed — delivery, replies, clicks, and growth."
       />
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <StatCard
-          label="Messages Sent"
-          value={formatNumber(dashboardStats.messagesSent)}
+          label="Messages sent"
+          value={formatNumber(overview.messagesSent)}
         />
-        <StatCard label="Delivery Rate" value={`${deliveryRate}%`} />
-        <StatCard label="Total Replies" value={formatNumber(totalReplies)} />
-        <StatCard label="Reply Rate" value={`${replyRate}%`} />
+        <StatCard
+          label="Delivery rate"
+          value={`${overview.deliveryRate}%`}
+        />
+        <StatCard
+          label="Failed messages"
+          value={formatNumber(overview.failedMessages)}
+          description={`${formatNumber(overview.failedRecipients)} failed recipients`}
+        />
+        <StatCard label="Replies" value={formatNumber(overview.replies)} />
+      </div>
+
+      <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <StatCard label="Opt-outs" value={formatNumber(overview.optOuts)} />
+        <StatCard label="Clicks" value={formatNumber(overview.clicks)} />
+        <StatCard
+          label="New contacts"
+          value={formatNumber(overview.newContacts)}
+          description="Last 14 days"
+        />
+      </div>
+
+      <div className="mt-8 grid gap-4 sm:grid-cols-2">
+        <SimpleBarChart
+          title="New contacts over time"
+          data={overview.charts.newContacts}
+        />
+        <SimpleBarChart
+          title="Messages sent over time"
+          data={overview.charts.messagesSent}
+        />
+        <SimpleBarChart
+          title="Replies over time"
+          data={overview.charts.replies}
+        />
+        <SimpleBarChart
+          title="Keyword opt-ins over time"
+          data={overview.charts.keywordOptIns}
+        />
+      </div>
+
+      <div className="mt-8 grid gap-6 lg:grid-cols-2">
+        <TopListsCard lists={overview.topLists} />
+        <TopKeywordsCard keywords={overview.topKeywords} />
       </div>
 
       <div className="mt-8">
         <h2 className="text-lg font-semibold text-gray-900">
-          Message Performance
+          Message results
         </h2>
-        <div className="mt-4">
-          <Table>
-            <TableHead>
-              <TableHeaderCell>Message</TableHeaderCell>
-              <TableHeaderCell>Status</TableHeaderCell>
-              <TableHeaderCell>Sent</TableHeaderCell>
-              <TableHeaderCell>Delivered</TableHeaderCell>
-              <TableHeaderCell>Replies</TableHeaderCell>
-              <TableHeaderCell>Reply Rate</TableHeaderCell>
-            </TableHead>
-            <TableBody>
-              {messages.map((msg) => (
-                <TableRow key={msg.id}>
-                  <TableCell className="font-medium">{msg.name}</TableCell>
-                  <TableCell>{messageStatusBadge(msg.status)}</TableCell>
-                  <TableCell>
-                    {msg.sentAt ? formatDateTime(msg.sentAt) : "—"}
-                  </TableCell>
-                  <TableCell>{formatNumber(msg.delivered)}</TableCell>
-                  <TableCell>{formatNumber(msg.replies)}</TableCell>
-                  <TableCell>
-                    {msg.delivered > 0
-                      ? `${Math.round((msg.replies / msg.delivered) * 100)}%`
-                      : "—"}
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </div>
-      </div>
-
-      <div className="mt-8">
-        <h2 className="text-lg font-semibold text-gray-900">Opt-outs</h2>
-        <Card className="mt-4">
-          <p className="text-3xl font-semibold text-gray-900">
-            {formatNumber(dashboardStats.optOuts)}
-          </p>
-          <p className="mt-1 text-sm text-gray-500">
-            Total contacts who have opted out of messages
-          </p>
-        </Card>
+        {!hasResults ? (
+          <div className="mt-4">
+            <EmptyState
+              title="No results yet"
+              description="Send your first message to start tracking delivery and engagement."
+              actionLabel="Go to Messages"
+              actionHref="/messages"
+            />
+          </div>
+        ) : (
+          <div className="mt-4">
+            <MessageResultsTable messages={messageResults} />
+          </div>
+        )}
       </div>
     </>
   );

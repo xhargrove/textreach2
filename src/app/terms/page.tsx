@@ -13,39 +13,71 @@ export default function TermsPage() {
       <main className="flex-1 py-16">
         <div className="container-app max-w-3xl">
           <h1 className="text-3xl font-bold text-gray-900">Terms of Service</h1>
-          <p className="mt-2 text-sm text-gray-500">
-            Last updated: June 2026
-          </p>
+          <p className="mt-2 text-sm text-gray-500">Last updated: June 2026</p>
 
-          <Card className="mt-8">
-            <div className="prose prose-gray max-w-none">
-              <p className="text-gray-600">
-                This is a placeholder Terms of Service page for TextReach. The
-                full legal terms will be added before public launch.
-              </p>
-              <h2 className="mt-6 text-lg font-semibold text-gray-900">
+          <Card className="mt-8 space-y-6">
+            <section>
+              <h2 className="text-lg font-semibold text-gray-900">
                 1. Acceptance of Terms
               </h2>
               <p className="mt-2 text-sm text-gray-600">
-                By accessing or using TextReach, you agree to be bound by these
-                Terms of Service and all applicable laws and regulations.
+                By creating an account or using TextReach, you agree to these
+                Terms of Service. If you do not agree, do not use the service.
               </p>
-              <h2 className="mt-6 text-lg font-semibold text-gray-900">
-                2. SMS Compliance
+            </section>
+
+            <section>
+              <h2 className="text-lg font-semibold text-gray-900">
+                2. SMS and TCPA Compliance
               </h2>
               <p className="mt-2 text-sm text-gray-600">
-                Users are responsible for complying with all applicable SMS
-                regulations, including obtaining proper consent before sending
-                messages and honoring opt-out requests.
+                You are solely responsible for complying with the Telephone
+                Consumer Protection Act (TCPA), carrier rules, and all applicable
+                SMS laws. You must obtain express consent before texting
+                contacts, honor STOP and HELP requests promptly, and only send
+                messages recipients agreed to receive.
               </p>
-              <h2 className="mt-6 text-lg font-semibold text-gray-900">
+            </section>
+
+            <section>
+              <h2 className="text-lg font-semibold text-gray-900">
                 3. Acceptable Use
               </h2>
               <p className="mt-2 text-sm text-gray-600">
-                You may not use TextReach to send spam, harassing messages, or
-                any content that violates applicable laws.
+                You may not use TextReach to send spam, unlawful content,
+                harassing messages, or messages without proper consent. We may
+                suspend accounts that violate these rules or carrier policies.
               </p>
-            </div>
+            </section>
+
+            <section>
+              <h2 className="text-lg font-semibold text-gray-900">
+                4. Billing and Plans
+              </h2>
+              <p className="mt-2 text-sm text-gray-600">
+                Paid plans renew monthly through Stripe unless canceled. Message
+                and contact limits apply per plan. Twilio message fees are
+                separate and billed by Twilio.
+              </p>
+            </section>
+
+            <section>
+              <h2 className="text-lg font-semibold text-gray-900">
+                5. Limitation of Liability
+              </h2>
+              <p className="mt-2 text-sm text-gray-600">
+                TextReach is provided as-is. We are not liable for delivery
+                failures, carrier filtering, compliance fines, or damages arising
+                from your messaging program.
+              </p>
+            </section>
+
+            <section>
+              <h2 className="text-lg font-semibold text-gray-900">6. Contact</h2>
+              <p className="mt-2 text-sm text-gray-600">
+                Questions about these terms: support@textreach.io
+              </p>
+            </section>
           </Card>
         </div>
       </main>

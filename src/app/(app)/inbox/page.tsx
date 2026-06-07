@@ -1,15 +1,25 @@
 import { PageHeader } from "@/components/ui/page-header";
-import { Card } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { inboxMessages } from "@/lib/mock-data";
-import { formatDateTime } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
+import { EmptyState } from "@/components/ui/empty-state";
+import { InboxConversationList } from "@/components/inbox/inbox-conversation-list";
+import { requirePagePermission } from "@/lib/auth/authorization";
+import { getPagePermissions } from "@/lib/auth/page-permissions";
+import {
+  getInboxConversations,
+  getInboxUnreadCount,
+} from "@/lib/queries/inbox";
 
 export const metadata = {
   title: "Inbox",
 };
 
-export default function InboxPage() {
-  const unreadCount = inboxMessages.filter((m) => !m.read).length;
+export default async function InboxPage() {
+  const ctx = await requirePagePermission("view_inbox");
+  const perms = getPagePermissions(ctx);
+  const [conversations, unreadCount] = await Promise.all([
+    getInboxConversations(ctx.workspaceId),
+    getInboxUnreadCount(ctx.workspaceId),
+  ]);
 
   return (
     <>
@@ -17,33 +27,28 @@ export default function InboxPage() {
         title="Inbox"
         description={
           unreadCount > 0
-            ? `${unreadCount} unread ${unreadCount === 1 ? "reply" : "replies"}`
-            : "All replies from your contacts"
+            ? `${unreadCount} unread ${unreadCount === 1 ? "reply" : "replies"} — tap a conversation to respond.`
+            : "Replies from your contacts show up here. Tap a conversation to respond."
+        }
+        action={
+          conversations.length > 0 && perms.canCreateMessages ? (
+            <Button href="/messages/new" variant="secondary">
+              New message
+            </Button>
+          ) : undefined
         }
       />
 
-      <div className="space-y-3">
-        {inboxMessages.map((msg) => (
-          <Card
-            key={msg.id}
-            className={`p-4 ${!msg.read ? "border-brand-200 bg-brand-50/30" : ""}`}
-          >
-            <div className="flex items-start justify-between gap-4">
-              <div className="min-w-0 flex-1">
-                <div className="flex items-center gap-2">
-                  <p className="font-medium text-gray-900">{msg.contact}</p>
-                  {!msg.read && <Badge variant="info">New</Badge>}
-                </div>
-                <p className="text-xs text-gray-500">{msg.phone}</p>
-                <p className="mt-2 text-sm text-gray-700">{msg.body}</p>
-              </div>
-              <p className="shrink-0 text-xs text-gray-400">
-                {formatDateTime(msg.receivedAt)}
-              </p>
-            </div>
-          </Card>
-        ))}
-      </div>
+      {conversations.length === 0 ? (
+        <EmptyState
+          title="Inbox is empty"
+          description="When contacts reply to your messages, their responses will appear here."
+          actionLabel={perms.canCreateMessages ? "Send a message" : undefined}
+          actionHref={perms.canCreateMessages ? "/messages/new" : undefined}
+        />
+      ) : (
+        <InboxConversationList conversations={conversations} />
+      )}
     </>
   );
 }

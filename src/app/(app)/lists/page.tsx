@@ -1,38 +1,50 @@
 import { PageHeader } from "@/components/ui/page-header";
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
-import { lists } from "@/lib/mock-data";
-import { formatNumber, formatDate } from "@/lib/utils";
+import { EmptyState } from "@/components/ui/empty-state";
+import { ListsTable } from "@/components/lists/lists-table";
+import { requirePagePermission } from "@/lib/auth/authorization";
+import { getPagePermissions } from "@/lib/auth/page-permissions";
+import { getListsWithCounts } from "@/lib/queries/lists";
 
 export const metadata = {
   title: "Lists",
 };
 
-export default function ListsPage() {
+export default async function ListsPage() {
+  const ctx = await requirePagePermission("view_lists");
+  const perms = getPagePermissions(ctx);
+  const lists = await getListsWithCounts(ctx.workspaceId);
+
+  const listItems = lists.map((list) => ({
+    id: list.id,
+    name: list.name,
+    description: list.description,
+    contactCount: list._count.listContacts,
+    createdAt: list.createdAt,
+  }));
+
   return (
     <>
       <PageHeader
         title="Lists"
-        description="Organize contacts into groups for targeted messages"
-        action={<Button>Create List</Button>}
+        description="Lists help you group contacts so you can send the right message to the right people."
+        action={
+          perms.canManageLists ? (
+            <Button href="/lists/new">Create List</Button>
+          ) : undefined
+        }
       />
 
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {lists.map((list) => (
-          <Card key={list.id} className="cursor-pointer hover:border-brand-300 transition-colors">
-            <h3 className="text-lg font-semibold text-gray-900">{list.name}</h3>
-            <p className="mt-1 text-sm text-gray-500">{list.description}</p>
-            <div className="mt-4 flex items-center justify-between text-sm">
-              <span className="font-medium text-brand-600">
-                {formatNumber(list.contactCount)} contacts
-              </span>
-              <span className="text-gray-400">
-                Created {formatDate(list.createdAt)}
-              </span>
-            </div>
-          </Card>
-        ))}
-      </div>
+      {listItems.length === 0 ? (
+        <EmptyState
+          title="No lists yet"
+          description="Create a list to organize contacts before sending messages."
+          actionLabel={perms.canManageLists ? "Create List" : undefined}
+          actionHref={perms.canManageLists ? "/lists/new" : undefined}
+        />
+      ) : (
+        <ListsTable lists={listItems} canManageLists={perms.canManageLists} />
+      )}
     </>
   );
 }

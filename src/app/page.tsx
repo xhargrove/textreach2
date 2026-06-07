@@ -76,10 +76,10 @@ export default function LandingPage() {
               software.
             </p>
             <div className="mt-10 flex flex-col items-center justify-center gap-4 sm:flex-row">
-              <Button href="/signup" size="lg">
+              <Button href="/sign-up" size="lg">
                 Start Free
               </Button>
-              <Button href="/dashboard" variant="secondary" size="lg">
+              <Button href="/api/auth/demo" variant="secondary" size="lg">
                 View Demo
               </Button>
             </div>
@@ -153,7 +153,7 @@ export default function LandingPage() {
               </p>
               <div className="mt-8">
                 <Button
-                  href="/signup"
+                  href="/sign-up"
                   size="lg"
                   className="bg-white text-brand-600 hover:bg-brand-50"
                 >

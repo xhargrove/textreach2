@@ -1,7 +1,11 @@
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
+import { ClerkAuthNav } from "@/components/auth/clerk-auth-nav";
+import { isClerkConfigured } from "@/lib/auth/clerk-config";
 
 export function PublicHeader() {
+  const useClerk = isClerkConfigured();
+
   return (
     <header className="border-b border-gray-200 bg-white">
       <div className="container-app flex h-16 items-center justify-between">
@@ -15,21 +19,33 @@ export function PublicHeader() {
           >
             Pricing
           </Link>
-          <Link
-            href="/login"
-            className="text-sm font-medium text-gray-600 hover:text-gray-900"
-          >
-            Log in
-          </Link>
-          <Button href="/signup" size="sm">
-            Start Free
-          </Button>
+          {useClerk ? (
+            <ClerkAuthNav />
+          ) : (
+            <>
+              <Link
+                href="/sign-in"
+                className="text-sm font-medium text-gray-600 hover:text-gray-900"
+              >
+                Sign in
+              </Link>
+              <Button href="/sign-up" size="sm">
+                Start Free
+              </Button>
+            </>
+          )}
         </nav>
-        <div className="flex items-center gap-3 md:hidden">
-          <Button href="/signup" size="sm">
-            Start Free
-          </Button>
-        </div>
+        {useClerk ? (
+          <div className="flex items-center gap-3 md:hidden">
+            <ClerkAuthNav />
+          </div>
+        ) : (
+          <div className="flex items-center gap-3 md:hidden">
+            <Button href="/sign-up" size="sm">
+              Start Free
+            </Button>
+          </div>
+        )}
       </div>
     </header>
   );

@@ -1,15 +1,23 @@
-import { AppMobileMenu, AppSidebar } from "./app-sidebar";
+import type { WorkspaceRole } from "@prisma/client";
+import { AppSidebar } from "./app-sidebar";
+import { ToastProvider } from "@/components/ui/toast";
 
-export function AppLayout({ children }: { children: React.ReactNode }) {
+type AppLayoutProps = {
+  children: React.ReactNode;
+  role: WorkspaceRole | null;
+};
+
+export function AppLayout({ children, role }: AppLayoutProps) {
   return (
-    <div className="min-h-screen bg-gray-50">
-      <AppSidebar />
-      <AppMobileMenu />
-      <main className="lg:pl-64">
-        <div className="container-app py-6 pb-24 lg:py-8 lg:pb-8">
-          {children}
-        </div>
-      </main>
-    </div>
+    <ToastProvider>
+      <div className="min-h-screen overflow-x-hidden bg-gray-50">
+        <AppSidebar role={role} />
+        <main className="lg:pl-64">
+          <div className="container-app py-4 pb-24 sm:py-6 lg:py-8 lg:pb-8">
+            {children}
+          </div>
+        </main>
+      </div>
+    </ToastProvider>
   );
 }

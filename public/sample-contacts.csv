@@ -1,0 +1,5 @@
+phone,first_name,last_name,email,tags
+5551234567,Jane,Smith,jane@example.com,VIP
+5559876543,John,Doe,john@example.com,Regular
+5555551234,Maria,Lopez,,Event Attendees
+5554443322,Chris,Taylor,chris@example.com,

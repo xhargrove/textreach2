@@ -2,140 +2,82 @@
 
 **Send text messages your customers actually see.**
 
-TextReach is a simple SMS platform that helps businesses, event organizers, DJs, artists, churches, restaurants, creators, and local brands send text messages for events, promotions, reminders, announcements, and follow-ups.
+TextReach is a simple SMS platform for businesses, event organizers, creators, and local brands to send text messages for events, promotions, reminders, and follow-ups.
 
 ## Core Flow
 
 Create a list → add contacts → write a message → send or schedule → track results.
 
-TextReach is not a complicated marketing automation tool. It is built around a simple, easy-to-understand workflow for non-technical users.
-
 ## Tech Stack
 
 - **Next.js 14** (App Router)
-- **TypeScript**
-- **Tailwind CSS**
-- **Prisma**
-- **PostgreSQL**
+- **TypeScript**, **Tailwind CSS**, **Prisma**, **PostgreSQL**
+- **Clerk** (production auth), **Twilio** (SMS), **Stripe** (billing)
 
 ## Getting Started
 
-### Prerequisites
-
-- Node.js 18+
-- PostgreSQL database
-
-### Install
-
 ```bash
 npm install
-```
-
-### Environment Variables
-
-Copy the example env file and fill in your values:
-
-```bash
 cp .env.example .env
-```
-
-| Variable | Description |
-|---|---|
-| `DATABASE_URL` | PostgreSQL connection string |
-| `NEXT_PUBLIC_APP_URL` | App URL (e.g. `http://localhost:3000`) |
-| `CLERK_SECRET_KEY` | Clerk auth secret (Phase 2) |
-| `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` | Clerk publishable key (Phase 2) |
-| `TWILIO_ACCOUNT_SID` | Twilio account SID (Phase 2) |
-| `TWILIO_AUTH_TOKEN` | Twilio auth token (Phase 2) |
-| `TWILIO_PHONE_NUMBER` | Twilio sending number (Phase 2) |
-| `TWILIO_MESSAGING_SERVICE_SID` | Twilio messaging service (Phase 2) |
-| `STRIPE_SECRET_KEY` | Stripe secret key (Phase 3) |
-| `STRIPE_WEBHOOK_SECRET` | Stripe webhook secret (Phase 3) |
-| `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` | Stripe publishable key (Phase 3) |
-
-### Database Setup
-
-```bash
-# Generate Prisma client
-npm run db:generate
-
-# Push schema to database
-npm run db:push
-
-# (Optional) Open Prisma Studio
-npm run db:studio
-```
-
-### Development
-
-```bash
+npm run db:migrate
+npm run db:seed   # optional demo data
 npm run dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) to view the app.
+Open [http://localhost:3000](http://localhost:3000).
 
-## Project Structure
+See [DEPLOY.md](./DEPLOY.md) for production deployment and [TESTING.md](./TESTING.md) for the launch checklist.
 
-```
-src/
-├── app/
-│   ├── (app)/          # Authenticated app pages
-│   │   ├── dashboard/
-│   │   ├── contacts/
-│   │   ├── lists/
-│   │   ├── messages/
-│   │   ├── keywords/
-│   │   ├── inbox/
-│   │   ├── results/
-│   │   ├── billing/
-│   │   └── settings/
-│   ├── login/
-│   ├── signup/
-│   ├── pricing/
-│   ├── terms/
-│   └── privacy/
-├── components/
-│   ├── ui/             # Reusable UI components
-│   └── layout/         # Layout components
-└── lib/
-    ├── prisma.ts       # Prisma client
-    ├── mock-data.ts    # Dashboard mock data
-    └── utils.ts        # Utility functions
-prisma/
-└── schema.prisma       # Database schema
+### Auth routes
+
+- Sign in: `/sign-in`
+- Sign up: `/sign-up`
+- Legacy aliases `/login` and `/signup` redirect to the canonical routes
+
+### Demo login (local dev without Clerk)
+
+After seeding:
+
+- **Email:** `demo@textreach.io`
+- **Password:** any value
+
+Set `SESSION_SECRET` (32+ chars) in `.env` for legacy auth and workspace switching.
+
+### Tests
+
+```bash
+npm test
 ```
 
-## Phase Roadmap
+## Feature Status
 
-### Phase 1 — Foundation (Current)
-- [x] Landing page and public pages
-- [x] App shell with navigation
-- [x] All major pages scaffolded with mock data
-- [x] Prisma schema with all core models
-- [x] Reusable UI component library
-- [x] Environment variable placeholders
+| Area | Status |
+|------|--------|
+| Contacts, lists, tags, CSV import | **Live** |
+| Message compose, send, schedule | **Live** |
+| Per-workspace Twilio inbound + outbound | **Live** |
+| Inbox replies, keywords, STOP/START/HELP | **Live** |
+| Stripe billing + plan limits | **Live** |
+| Results, link clicks, reply stats | **Live** |
+| Compliance settings + quiet hours (9 PM–8 AM) | **Live** |
+| Team invites (Clerk email) + roles | **Live** |
+| Multi-workspace switcher | **Live** |
+| Platform admin (`/admin`) | **Live** |
+| Workspace self-delete | **Future** |
+| CSV export, onboarding wizard | **Future** |
 
-### Phase 2 — Auth & Messaging
-- [ ] Clerk authentication integration
-- [ ] Twilio SMS sending and receiving
-- [ ] Real contact and list management
-- [ ] Message compose, send, and schedule
-- [ ] Keyword auto-replies
-- [ ] Inbox with real replies
+## Twilio Webhooks
 
-### Phase 3 — Billing & Analytics
-- [ ] Stripe subscription billing
-- [ ] Usage tracking and plan limits
-- [ ] Link click tracking
-- [ ] Delivery and reply analytics
-- [ ] CSV contact import/export
+| Webhook | URL |
+|---------|-----|
+| Inbound SMS | `{YOUR_PUBLIC_URL}/api/webhooks/twilio/inbound` |
+| Status callback | `{YOUR_PUBLIC_URL}/api/webhooks/twilio/status` |
 
-### Phase 4 — Polish & Launch
-- [ ] Onboarding flow
-- [ ] SMS compliance tools (opt-in forms, STOP handling)
-- [ ] Team members and workspace roles
-- [ ] Email notifications
-- [ ] Production deployment
+Each workspace must configure its sender in **Settings → Phone Number**. Outbound sends use the workspace Messaging Service SID or phone number.
+
+## Clerk Webhook (team invites)
+
+Register `POST {YOUR_PUBLIC_URL}/api/webhooks/clerk` with events `user.created` and `user.updated`. Set `CLERK_WEBHOOK_SIGNING_SECRET` in env.
 
 ## License
 

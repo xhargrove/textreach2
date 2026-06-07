@@ -41,3 +41,23 @@ export function messageStatusBadge(status: string) {
   const config = map[status] ?? { label: status, variant: "default" as const };
   return <Badge variant={config.variant}>{config.label}</Badge>;
 }
+
+export function contactStatusBadge(status: string) {
+  const map: Record<string, { label: string; variant: BadgeVariant }> = {
+    active: { label: "Active", variant: "success" },
+    opted_out: { label: "Opted out", variant: "error" },
+    invalid: { label: "Invalid", variant: "warning" },
+  };
+  const config = map[status] ?? { label: status, variant: "default" as const };
+  return <Badge variant={config.variant}>{config.label}</Badge>;
+}
+
+export function contactSourceBadge(source: string) {
+  const map: Record<string, string> = {
+    manual: "Manual",
+    csv: "CSV",
+    keyword: "Keyword",
+    inbound: "Inbound",
+  };
+  return <Badge variant="default">{map[source] ?? source}</Badge>;
+}
