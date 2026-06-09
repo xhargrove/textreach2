@@ -523,21 +523,20 @@ export function CreateMessageWizard({
             >
               Save as draft
             </Button>
-            {scheduledAt ? (
+            <Button
+              type="button"
+              disabled={isPending || !twilioConfigured}
+              onClick={requestSend}
+            >
+              {isPending ? "Sending…" : "Send now"}
+            </Button>
+            {scheduledAt && (
               <Button
                 type="button"
                 disabled={isPending || !twilioConfigured}
                 onClick={requestSchedule}
               >
                 {isPending ? "Scheduling…" : "Schedule message"}
-              </Button>
-            ) : (
-              <Button
-                type="button"
-                disabled={isPending || !twilioConfigured}
-                onClick={requestSend}
-              >
-                Send now
               </Button>
             )}
           </div>

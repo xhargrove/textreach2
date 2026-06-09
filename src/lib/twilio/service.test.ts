@@ -66,6 +66,18 @@ describe("workspace Twilio sender resolution", () => {
       })
     ).toEqual({ from: "+15559999999" });
   });
+
+  it("falls back to platform sender in non-production when TWILIO_PHONE_NUMBER is set", () => {
+    process.env.TWILIO_PHONE_NUMBER = "+15558888888";
+
+    expect(isPlatformSenderFallbackEnabled()).toBe(true);
+    expect(
+      resolveSendFromOptionsForWorkspace({
+        twilioPhoneNumber: null,
+        twilioMessagingSid: null,
+      })
+    ).toEqual({ from: "+15558888888" });
+  });
 });
 
 describe("sendSms workspace routing", () => {

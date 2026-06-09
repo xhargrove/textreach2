@@ -7,8 +7,17 @@ export type TwilioSendFromOptions =
   | { messagingServiceSid: string }
   | { from: string };
 
+function isDevEnvironment(): boolean {
+  return process.env.NODE_ENV !== "production";
+}
+
 export function isPlatformSenderFallbackEnabled(): boolean {
-  return process.env.TWILIO_ALLOW_PLATFORM_SENDER_FALLBACK === "true";
+  if (process.env.TWILIO_ALLOW_PLATFORM_SENDER_FALLBACK === "true") {
+    return true;
+  }
+
+  // Local development: use platform TWILIO_PHONE_NUMBER when workspace sender unset.
+  return isDevEnvironment() && resolvePlatformSendFromOptions() !== null;
 }
 
 export function resolveWorkspaceSendFromOptions(
